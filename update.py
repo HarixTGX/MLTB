@@ -1,17 +1,14 @@
 from pymongo import MongoClient
 from requests import get as rget
 from pkg_resources import working_set
+from os import path as ospath, environ
 from dotenv import load_dotenv, dotenv_values
-from os import path as ospath, environ, remove
 from subprocess import run as srun, call as scall
 from logging import FileHandler, StreamHandler, INFO, basicConfig, error as log_error, info as log_info
 
 if ospath.exists('log.txt'):
     with open('log.txt', 'r+') as f:
         f.truncate(0)
-
-if ospath.exists('rlog.txt'):
-    remove('rlog.txt')
 
 basicConfig(format="[%(asctime)s] [%(levelname)s] - %(message)s",
             datefmt="%d-%b-%y %I:%M:%S %p",
