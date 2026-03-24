@@ -18,7 +18,6 @@ google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 gunicorn
-git+https://github.com/zevtyardt/lk21.git
 httpx
 langcodes[data]
 lxml
@@ -37,7 +36,6 @@ python-dotenv
 python-magic
 qbittorrent-api
 requests
-speedtest-cli
 telegraph
 tenacity
 tgcrypto
