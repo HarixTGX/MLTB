@@ -39,5 +39,5 @@ requests
 telegraph
 tenacity
 tgcrypto
-uvloop
+uvloop==0.21.0
 xattr
