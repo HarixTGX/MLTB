@@ -1,7 +1,7 @@
 aiohttp
 aiofiles
 aioshutil
-anytree==2.8.0
+anytree
 apscheduler
 aria2p
 asyncio
@@ -32,7 +32,7 @@ psutil
 pybase64
 pycountry
 pymongo
-pyrofork==2.2.11
+kurigram
 python-dotenv
 python-magic
 qbittorrent-api
@@ -41,7 +41,5 @@ speedtest-cli
 telegraph
 tenacity
 tgcrypto
-uvloop==0.21.0
+uvloop
 xattr
-yt-dlp
-setuptools
