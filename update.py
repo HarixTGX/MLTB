@@ -1,84 +1,98 @@
-from pymongo import MongoClient
-from requests import get as rget
-from pkg_resources import working_set
-from os import path as ospath, environ
-from dotenv import load_dotenv, dotenv_values
-from subprocess import run as srun, call as scall
-from logging import FileHandler, StreamHandler, INFO, basicConfig, error as log_error, info as log_info
+import os
+from sys import exit
+from pytz import timezone
+from os import path, remove
+from datetime import datetime
+from subprocess import run as srun
+from importlib import import_module
+from pymongo.server_api import ServerApi
+from pymongo.mongo_client import MongoClient
+from logging import ERROR, INFO, FileHandler, Formatter, LogRecord, StreamHandler, basicConfig, getLogger, info as log_info, error as log_error
 
-if ospath.exists('log.txt'):
-    with open('log.txt', 'r+') as f:
+getLogger("pymongo").setLevel(ERROR)
+
+if path.exists("log.txt"):
+    with open("log.txt", "r+") as f:
         f.truncate(0)
 
-basicConfig(format="[%(asctime)s] [%(levelname)s] - %(message)s",
-            datefmt="%d-%b-%y %I:%M:%S %p",
-            handlers=[FileHandler('log.txt'), StreamHandler()],
-            level=INFO)
+if path.exists("rlog.txt"):
+    remove("rlog.txt")
 
-load_dotenv('config.env', override=True)
+class CustomFormatter(Formatter):
+    def formatTime(self, record: LogRecord, datefmt: str | None) -> str:
+        dt: datetime = datetime.fromtimestamp(record.created, tz=timezone("Asia/Dhaka"))
+        return dt.strftime(datefmt)
+
+    def format(self, record: LogRecord) -> str:
+        return super().format(record).replace(record.levelname, record.levelname[:1])
+
+
+formatter = CustomFormatter(
+    "[%(asctime)s] %(levelname)s - %(message)s [%(module)s:%(lineno)d]",
+    datefmt="%d-%b %I:%M:%S %p",
+)
+
+file_handler = FileHandler("log.txt")
+file_handler.setFormatter(formatter)
+
+stream_handler = StreamHandler()
+stream_handler.setFormatter(formatter)
+
+basicConfig(handlers=[file_handler, stream_handler], level=INFO)
 
 try:
-    if bool(environ.get('_____REMOVE_THIS_LINE_____')):
-        log_error('The README.md file there to be read! Exiting now!')
-        exit()
-except:
-    pass
+    settings = import_module("config")
+    config_file = {
+        key: value.strip() if isinstance(value, str) else value
+        for key, value in vars(settings).items()
+    }
+except Exception:
+    log_info("The 'config.py' file is missing! Falling back to environment variables.")
+    config_file = {}
 
-BOT_TOKEN = environ.get('BOT_TOKEN', '')
-if len(BOT_TOKEN) == 0:
-    log_error("BOT_TOKEN variable is missing! Exiting now")
+BOT_TOKEN = config_file.get("BOT_TOKEN") or os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    log_error("BOT_TOKEN variable is missing! Exiting now.")
     exit(1)
 
-bot_id = BOT_TOKEN.split(':', 1)[0]
+BOT_ID = BOT_TOKEN.split(":", 1)[0]
 
-DATABASE_URL = environ.get('DATABASE_URL', '')
-if len(DATABASE_URL) == 0:
-    DATABASE_URL = None
+DATABASE_URL = config_file.get("DATABASE_URL", "") or os.getenv("DATABASE_URL", "")
 
-if DATABASE_URL is not None:
-    conn = MongoClient(DATABASE_URL)
-    db = conn.mltb
-    old_config = db.settings.deployConfig.find_one({'_id': bot_id})
-    config_dict = db.settings.config.find_one({'_id': bot_id})
-    if old_config is not None:
-        del old_config['_id']
-    if (old_config is not None and old_config == dict(dotenv_values('config.env')) or old_config is None) \
-            and config_dict is not None:
-        environ['UPSTREAM_REPO'] = config_dict['UPSTREAM_REPO']
-        environ['UPSTREAM_BRANCH'] = config_dict['UPSTREAM_BRANCH']
-        environ['UPGRADE_PACKAGES'] = config_dict.get('UPDATE_PACKAGES', 'False')
-    conn.close()
+if DATABASE_URL:
+    try:
+        conn = MongoClient(DATABASE_URL, server_api=ServerApi("1"))
+        db = conn.mltb
+        config_dict = db.settings.config.find_one({"_id": BOT_ID})
+        if config_dict is not None:
+            config_file["UPSTREAM_REPO"] = config_dict.get("UPSTREAM_REPO", config_file.get("UPSTREAM_REPO"))
+            config_file["UPSTREAM_BRANCH"] = config_dict.get("UPSTREAM_BRANCH", config_file.get("UPSTREAM_BRANCH"))
+        conn.close()
+    except Exception as e:
+        log_error(f"Database ERROR: {e}")
 
-UPGRADE_PACKAGES = environ.get('UPGRADE_PACKAGES', 'False') 
-if UPGRADE_PACKAGES.lower() == 'true':
-    packages = [dist.project_name for dist in working_set]
-    scall("pip install " + ' '.join(packages), shell=True)
+UPSTREAM_REPO = (config_file.get("UPSTREAM_REPO", "") or os.getenv("UPSTREAM_REPO", ""))
 
-UPSTREAM_REPO = environ.get('UPSTREAM_REPO', 'https://github.com/HarixTGX/MLTB')
-if len(UPSTREAM_REPO) == 0:
-    UPSTREAM_REPO = None
+UPSTREAM_BRANCH = (config_file.get("UPSTREAM_BRANCH", "") or os.getenv("UPSTREAM_BRANCH", "master"))
 
-UPSTREAM_BRANCH = environ.get('UPSTREAM_BRANCH', '')
-if len(UPSTREAM_BRANCH) == 0:
-    UPSTREAM_BRANCH = 'master'
-
-if UPSTREAM_REPO is not None:
-    if ospath.exists('.git'):
-        srun(["rm", "-rf", ".git"])
-
-    update = srun([f"git init -q \
+if UPSTREAM_REPO:
+    if path.exists(".git"):
+        srun(["rm", "-rf", ".git"], check=False)
+    update = srun(
+        [
+            f"git init -q \
                      && git config --global user.email harixtg@gmail.com \
-                     && git config --global user.name HarixTGX \
+                     && git config --global user.name harixtgx \
                      && git add . \
                      && git commit -sm update -q \
                      && git remote add origin {UPSTREAM_REPO} \
                      && git fetch origin -q \
-                     && git reset --hard origin/{UPSTREAM_BRANCH} -q"], shell=True)
-
-    repo = UPSTREAM_REPO.split('/')
-    UPSTREAM_REPO = f"https://github.com/{repo[-2]}/{repo[-1]}"
+                     && git reset --hard origin/{UPSTREAM_BRANCH} -q",
+        ],
+        shell=True,
+        check=False,
+    )
     if update.returncode == 0:
-        log_info('Successfully updated with latest commits !!')
+        log_info("Successfully updated with latest commit from UPSTREAM_REPO")
     else:
-        log_error('Something went Wrong ! Retry or Ask Support !')
-    log_info(f'UPSTREAM_REPO : {UPSTREAM_REPO} | UPSTREAM_BRANCH : {UPSTREAM_BRANCH}')
+        log_error("Something went wrong while updating, check UPSTREAM_REPO if valid or not!")
