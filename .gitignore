@@ -5,6 +5,8 @@ rclone/
 tokens/
 sabnzbd/
 downloads/
+tdlib_user/
+tdlib_bot/
 config.py
 token.pickle
 rclone.conf
