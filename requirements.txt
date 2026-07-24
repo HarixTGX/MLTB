@@ -8,7 +8,7 @@ aioqbt
 cachetools
 cloudscraper
 dnspython
-# ElectroCrypto
+ElectroCrypto
 kurigram
 fastapi
 feedparser
@@ -26,13 +26,12 @@ pymongo
 pyshorteners
 python-magic
 pytz
-# pytdbot[tdjson]
+pytdbot
 requests
 speedtest-cli
 truelink
 telegraph
 tenacity
-tgcrypto
 uvicorn
 uvloop
 xattr
