@@ -26,7 +26,6 @@ pymongo
 pyshorteners
 python-magic
 pytz
-pytdbot
 requests
 speedtest-cli
 truelink
