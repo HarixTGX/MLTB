@@ -8,8 +8,7 @@ aioqbt
 cachetools
 cloudscraper
 dnspython
-ElectroCrypto
-kurigram
+wzgram[fast]
 fastapi
 feedparser
 google-api-python-client
