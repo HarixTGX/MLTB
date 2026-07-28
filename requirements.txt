@@ -27,7 +27,6 @@ python-magic
 pytz
 requests
 speedtest-cli
-tgcrypto
 truelink
 telegraph
 tenacity
